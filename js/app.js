@@ -9,7 +9,8 @@
   var HOLD_MS = 700;         // så længe skal strengen være stemt før den får et flueben
   var STALE_MS = 350;        // uden lyd: vis aflæsningen nedtonet
   var RESET_MS = 2000;       // uden lyd: nulstil visningen
-  var GATE_RMS = 0.006;      // støjgrænse
+  var GATE_RMS = 0.006;      // højeste støjgrænse
+  var GATE_MIN_RMS = 0.0012; // laveste støjgrænse (svage telefonmikrofoner)
   var ANALYSE_EVERY_MS = 30;
   var GAUGE_DEG = 60;        // ±50 cent = ±60 grader
   var A4_MIN = 415, A4_MAX = 466;
@@ -37,6 +38,8 @@
     a4Value: $('a4-value'),
     a4Up: $('a4-up'),
     a4Down: $('a4-down'),
+    level: $('level'),
+    levelBar: $('level-bar'),
     capo: $('capo'),
     capoValue: $('capo-value'),
     capoBadge: $('capo-badge'),
@@ -62,6 +65,12 @@
     history: [],
     lastHeard: 0,
     timer: 0,
+    gate: 0.006,
+    noise: 0,
+    badSince: 0,
+    lastCtxTime: -1,
+    recoveries: 0,
+    recovering: false,
     active: false,
     current: null,       // seneste målstreng
     holdKey: null,
@@ -388,51 +397,107 @@
     return audio.ctx;
   }
 
+  var MIC_CONSTRAINTS = { audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } };
+
+  function micError(err) {
+    if (err && (err.name === 'NotAllowedError' || err.name === 'SecurityError')) {
+      return 'Adgang til mikrofonen blev afvist. Giv siden lov til at bruge mikrofonen i browserens indstillinger, og prøv igen.';
+    }
+    if (err && err.name === 'NotFoundError') return 'Der blev ikke fundet nogen mikrofon.';
+    if (err && err.name === 'NotReadableError') return 'Mikrofonen bruges af en anden app. Luk den, og prøv igen.';
+    return 'Mikrofonen kunne ikke startes.';
+  }
+
+  // Kobler en mikrofonstrøm til analysen
+  function connectStream(stream) {
+    var ctx = ensureContext();
+    releaseStream();
+    audio.stream = stream;
+    var src = ctx.createMediaStreamSource(stream);
+    var hp = ctx.createBiquadFilter();
+    hp.type = 'highpass';
+    hp.frequency.value = 20;
+    var lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 4000;
+    audio.analyser = ctx.createAnalyser();
+    audio.analyser.fftSize = 16384;
+    audio.analyser.smoothingTimeConstant = 0;
+    audio.buf = new Float32Array(audio.analyser.fftSize);
+    src.connect(hp);
+    hp.connect(lp);
+    lp.connect(audio.analyser);
+    audio.source = src;
+    // Telefonen kan selv afbryde mikrofonen (opkald, anden app); så startes den igen
+    stream.getAudioTracks().forEach(function (tr) {
+      tr.addEventListener('ended', function () { if (state.listening && audio.stream === stream) recover(performance.now(), true); });
+    });
+    det.badSince = 0;
+    det.lastCtxTime = -1;
+    return ctx.resume().catch(function () {});
+  }
+
+  function releaseStream() {
+    if (audio.stream) audio.stream.getTracks().forEach(function (tr) { tr.stop(); });
+    if (audio.source) audio.source.disconnect();
+    audio.stream = audio.source = null;
+  }
+
   function startMic() {
     el.startError.hidden = true;
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       showStartError('Browseren giver ikke adgang til mikrofonen. Åbn siden via https:// (eller localhost) i en nyere browser.');
       return;
     }
+    // Lyden SKAL startes direkte i trykket – ellers forbliver den på pause på iPhone
+    window.AudioShared.unlock();
+    ensureContext();
     el.start.disabled = true;
     el.start.textContent = 'Starter…';
-    navigator.mediaDevices.getUserMedia({
-      audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
-    }).then(function (stream) {
-      var ctx = ensureContext();
-      audio.stream = stream;
-      var src = ctx.createMediaStreamSource(stream);
-      var hp = ctx.createBiquadFilter();
-      hp.type = 'highpass';
-      hp.frequency.value = 20;
-      var lp = ctx.createBiquadFilter();
-      lp.type = 'lowpass';
-      lp.frequency.value = 4000;
-      audio.analyser = ctx.createAnalyser();
-      audio.analyser.fftSize = 16384;
-      audio.analyser.smoothingTimeConstant = 0;
-      audio.buf = new Float32Array(audio.analyser.fftSize);
-      src.connect(hp);
-      hp.connect(lp);
-      lp.connect(audio.analyser);
-      audio.source = src;
-
-      state.listening = true;
-      window.AudioShared.keepAwake('tuner', true);
-      el.stop.hidden = false;
-      setIdleReading();
-      startLoops();
+    navigator.mediaDevices.getUserMedia(MIC_CONSTRAINTS).then(function (stream) {
+      return connectStream(stream).then(function () {
+        state.listening = true;
+        det.recoveries = 0;
+        det.noise = 0;
+        window.AudioShared.keepAwake('tuner', true);
+        el.stop.hidden = false;
+        setIdleReading();
+        startLoops();
+      });
     }).catch(function (err) {
-      var msg = 'Mikrofonen kunne ikke startes.';
-      if (err && (err.name === 'NotAllowedError' || err.name === 'SecurityError')) {
-        msg = 'Adgang til mikrofonen blev afvist. Giv siden lov til at bruge mikrofonen i browserens indstillinger, og prøv igen.';
-      } else if (err && err.name === 'NotFoundError') {
-        msg = 'Der blev ikke fundet nogen mikrofon.';
-      }
-      showStartError(msg);
+      showStartError(micError(err));
     }).then(function () {
       el.start.disabled = false;
       el.start.textContent = 'Start mikrofon';
+    });
+  }
+
+  // Selvhelbredelse: lyden er gået i stå eller mikrofonen leverer kun nuller.
+  // 1) væk lydmotoren  2) hent mikrofonen igen  3) ny lydmotor + ny mikrofon
+  function recover(now, trackEnded) {
+    if (det.recovering || !state.listening) return;
+    var attempt = trackEnded ? Math.max(1, det.recoveries) : det.recoveries;
+    det.recoveries = attempt + 1;
+    det.badSince = now;
+    if (attempt >= 3) {
+      el.hint.textContent = 'Mikrofonen giver ingen lyd. Tryk Stop og derefter Start mikrofon – og luk andre apps, der bruger mikrofonen.';
+      return;
+    }
+    el.hint.textContent = 'Genstarter mikrofonen …';
+    if (attempt === 0) {
+      ensureContext().resume().catch(function () {});
+      return;
+    }
+    det.recovering = true;
+    if (attempt === 2) audio.ctx = window.AudioShared.resetContext();
+    navigator.mediaDevices.getUserMedia(MIC_CONSTRAINTS).then(function (stream) {
+      if (!state.listening) { stream.getTracks().forEach(function (t) { t.stop(); }); return; }
+      return connectStream(stream);
+    }).catch(function (err) {
+      el.hint.textContent = micError(err);
+    }).then(function () {
+      det.recovering = false;
+      det.badSince = performance.now();
     });
   }
 
@@ -440,12 +505,28 @@
     state.listening = false;
     window.AudioShared.keepAwake('tuner', false);
     clearInterval(det.timer);
-    if (audio.stream) audio.stream.getTracks().forEach(function (tr) { tr.stop(); });
-    if (audio.source) audio.source.disconnect();
-    audio.stream = audio.source = audio.analyser = null;
+    releaseStream();
+    audio.analyser = null;
     el.stop.hidden = true;
+    setLevel(0);
     setIdleReading();
     drawNeedle(0);
+  }
+
+  // Når man vender tilbage til appen: tjek at mikrofonen stadig lever
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden || !state.listening) return;
+    ensureContext();
+    var dead = !audio.stream || audio.stream.getAudioTracks().every(function (t) { return t.readyState === 'ended'; });
+    if (dead) recover(performance.now(), true);
+  });
+
+  function setLevel(rms) {
+    // -60 dB … 0 dB → 0 … 100 %
+    var db = rms > 0 ? 20 * Math.log10(rms) : -100;
+    var pct = Math.max(0, Math.min(100, (db + 60) / 60 * 100));
+    el.levelBar.style.width = pct.toFixed(0) + '%';
+    el.level.classList.toggle('hot', rms >= det.gate);
   }
 
   function showStartError(msg) {
@@ -466,14 +547,41 @@
       det.lastHeard = 0;
       return silence(now);
     }
+    if (det.recovering || !audio.analyser) return;
     var buf = audio.buf;
     audio.analyser.getFloatTimeDomainData(buf);
 
-    var n = Math.min(buf.length, 4096), sum = 0;
-    for (var i = buf.length - n; i < buf.length; i++) sum += buf[i] * buf[i];
+    var n = Math.min(buf.length, 4096), sum = 0, peak = 0;
+    for (var i = buf.length - n; i < buf.length; i++) {
+      sum += buf[i] * buf[i];
+      if (buf[i] > peak) peak = buf[i]; else if (-buf[i] > peak) peak = -buf[i];
+    }
     var rms = Math.sqrt(sum / n);
 
-    var res = rms >= GATE_RMS ? P.detectPitch(buf, audio.ctx.sampleRate, range.min, range.max) : null;
+    // Vagthund: står lydmotoren stille, eller leverer mikrofonen kun nuller?
+    // En levende mikrofon har altid lidt støj, så præcis nul betyder, at noget er gået i stå.
+    var t = audio.ctx.currentTime;
+    var stalled = audio.ctx.state !== 'running' || t === det.lastCtxTime;
+    det.lastCtxTime = t;
+    if (stalled || peak === 0) {
+      if (!det.badSince) det.badSince = now;
+      else if (now - det.badSince > 1200) recover(now, false);
+      setLevel(0);
+      return silence(now);
+    }
+    if (det.badSince) {
+      det.badSince = 0;
+      det.recoveries = 0;
+      if (!det.active) el.hint.textContent = 'Slå en streng an';
+    }
+
+    // Støjgrænsen følger baggrundsstøjen: falder straks, stiger langsomt.
+    // Så virker svage telefonmikrofoner også, uden at støj tolkes som toner.
+    det.noise = !det.noise || rms < det.noise ? rms : det.noise * 0.997 + rms * 0.003;
+    det.gate = Math.min(GATE_RMS, Math.max(GATE_MIN_RMS, det.noise * 3));
+    setLevel(rms);
+
+    var res = rms >= det.gate ? P.detectPitch(buf, audio.ctx.sampleRate, range.min, range.max) : null;
     if (!res) return silence(now);
 
     // Udglatning: median af de seneste målinger, nulstilles ved tonespring

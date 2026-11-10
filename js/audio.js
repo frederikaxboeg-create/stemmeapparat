@@ -6,13 +6,41 @@
   var ctx = null;
 
   function getContext() {
-    if (!ctx) {
+    if (!ctx || ctx.state === 'closed') {
       var Ctx = global.AudioContext || global.webkitAudioContext;
       ctx = new Ctx({ latencyHint: 'interactive' });
     }
-    if (ctx.state === 'suspended') ctx.resume();
+    // iPhone bruger også tilstanden "interrupted" (opkald, låst skærm, anden app)
+    if (ctx.state !== 'running') ctx.resume().catch(function () { /* prøves igen senere */ });
     return ctx;
   }
+
+  // Skal kaldes direkte i et tryk: mobilbrowsere tillader kun, at lyd startes af
+  // brugeren. En lydløs mini-lyd "låser op" for lyden på iPhone.
+  function unlock() {
+    var c = getContext();
+    try {
+      var b = c.createBuffer(1, 1, c.sampleRate);
+      var s = c.createBufferSource();
+      s.buffer = b;
+      s.connect(c.destination);
+      s.start(0);
+    } catch (e) { /* ignorer */ }
+    return c;
+  }
+
+  // Sidste udvej når lyden er gået i stå: luk konteksten og lav en ny
+  function resetContext() {
+    if (ctx) { try { ctx.close(); } catch (e) { /* ignorer */ } }
+    ctx = null;
+    return getContext();
+  }
+
+  // Væk lyden igen, når man vender tilbage til appen
+  function wake() { if (ctx && ctx.state !== 'running') ctx.resume().catch(function () {}); }
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) wake(); });
+  global.addEventListener('pageshow', wake);
+  global.addEventListener('focus', wake);
 
   // Tidspunktet (i kontekstens tid) for den lyd der lige nu kommer ud af højttaleren
   function audibleTime() {
@@ -110,10 +138,12 @@
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       return Promise.reject(Object.assign(new Error('unsupported'), { name: 'NotSupportedError' }));
     }
+    unlock(); // mens vi stadig er inde i brugerens tryk
     return navigator.mediaDevices.getUserMedia({
       audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
     }).then(function (stream) {
       var c = getContext();
+      c.resume().catch(function () {});
       var src = c.createMediaStreamSource(stream);
       var hp = c.createBiquadFilter();
       hp.type = 'highpass';
@@ -154,6 +184,8 @@
 
   global.AudioShared = {
     getContext: getContext,
+    unlock: unlock,
+    resetContext: resetContext,
     audibleTime: audibleTime,
     keepAwake: keepAwake,
     pluck: pluck,

@@ -847,3 +847,22 @@ input.switch:checked::after { transform: translateX(18px); }
   .chord-top { flex-direction: column; align-items: stretch; }
   .timer { font-size: 54px; }
 }
+
+/* Mikrofonniveau: viser at mikrofonen hører noget */
+.level {
+  height: 4px;
+  max-width: 200px;
+  margin: 10px auto 0;
+  border-radius: 2px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.level span {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--idle);
+  transition: width 0.06s linear;
+}
+.level.hot span { background: var(--accent); }
+.display[data-state="off"] .level { display: none; }

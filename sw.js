@@ -1,7 +1,7 @@
 /* Service worker: gemmer appens filer, så den også virker uden internet.
  * Strategi: svar straks fra cachen og hent en frisk version i baggrunden
  * (stale-while-revalidate), så opdateringer slår igennem ved næste åbning. */
-var CACHE = 'stemmeapparat-v1';
+var CACHE = 'stemmeapparat-v2';
 var FILES = [
   './',
   'index.html',
