@@ -1,0 +1,25 @@
+{
+  "name": "Stemmeapparat – stem, metronom, akkorder og øvelog",
+  "short_name": "Stemmeapparat",
+  "description": "Stemmeapparat, metronom, akkordbibliotek, gehørtræning og øvelog til strengeinstrumenter.",
+  "lang": "da",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#101216",
+  "theme_color": "#101216",
+  "categories": ["music", "education", "utilities"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ],
+  "shortcuts": [
+    { "name": "Stem", "url": "./#stem", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Metronom", "url": "./#metronom", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Akkorder", "url": "./#akkorder", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Øvelog", "url": "./#oevelog", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] }
+  ]
+}

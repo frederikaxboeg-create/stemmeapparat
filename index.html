@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="da">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#101216">
+  <meta name="description" content="Stemmeapparat, metronom, akkordbibliotek, gehørtræning og øvelog til guitar, 12-strenget guitar, bas, ukulele, violin, bratsch, cello og kontrabas.">
+  <title>Stemmeapparat</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Stemmeapparat">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <h1 id="view-title">Stemmeapparat</h1>
+      <button type="button" id="install" class="secondary compact install-btn" hidden>⤓ Installér</button>
+      <div class="a4" id="a4-control" title="Kammertone (referencefrekvens for A4)">
+        <button type="button" id="a4-down" class="icon-btn" aria-label="Sænk kammertonen">−</button>
+        <span class="a4-text"><span class="muted">A4</span> <strong id="a4-value">440</strong> Hz</span>
+        <button type="button" id="a4-up" class="icon-btn" aria-label="Hæv kammertonen">+</button>
+      </div>
+    </header>
+
+    <main>
+      <!-- ============ Stemmeapparat ============ -->
+      <section class="view" id="view-tuner" aria-labelledby="tab-tuner">
+        <nav class="instruments" id="instruments" aria-label="Instrument"></nav>
+
+        <div class="tuning-row">
+          <label for="tuning">Stemning</label>
+          <select id="tuning"></select>
+        </div>
+
+        <section class="capo" id="capo" hidden>
+          <div class="capo-head">
+            <span class="capo-label">Capo</span>
+            <span class="capo-value" id="capo-value">Ingen</span>
+          </div>
+          <div class="neck" id="neck" role="radiogroup" aria-label="Capo-position"></div>
+        </section>
+
+        <div class="display" id="display" data-state="off">
+          <div class="capo-badge" id="capo-badge" hidden></div>
+          <div class="note" aria-live="polite">
+            <span id="note-name">–</span><span class="octave" id="note-octave"></span>
+          </div>
+          <div class="freq" id="freq">&nbsp;</div>
+
+          <div class="gauge-wrap">
+            <svg class="gauge" id="gauge" viewBox="0 0 320 190" aria-hidden="true">
+              <g id="gauge-ticks"></g>
+              <path class="zone" id="gauge-zone"></path>
+              <text class="gauge-sign" x="22" y="182">♭</text>
+              <text class="gauge-sign" x="298" y="182" text-anchor="end">♯</text>
+              <g id="needle">
+                <line x1="160" y1="170" x2="160" y2="46" class="needle-line"></line>
+              </g>
+              <circle cx="160" cy="170" r="8" class="hub"></circle>
+            </svg>
+            <div class="over over-flat" aria-hidden="true">‹‹</div>
+            <div class="over over-sharp" aria-hidden="true">››</div>
+          </div>
+
+          <div class="cents" id="cents">&nbsp;</div>
+          <div class="hint" id="hint">&nbsp;</div>
+
+          <div class="start-box" id="start-box">
+            <button type="button" id="start" class="primary">Start mikrofon</button>
+            <p class="small muted">Lyden behandles kun på din enhed og gemmes ikke.</p>
+            <p class="error" id="start-error" hidden></p>
+          </div>
+        </div>
+
+        <section class="strings" id="strings" aria-label="Strenge"></section>
+
+        <div class="controls">
+          <button type="button" id="mode" class="secondary" aria-pressed="true">Auto</button>
+          <button type="button" id="play" class="secondary">♪ Spil tone</button>
+          <button type="button" id="stop" class="secondary" hidden>Stop</button>
+        </div>
+        <p class="small muted footnote">Tryk på en streng for at låse til den. Tryk igen for automatisk genkendelse.</p>
+
+        <section class="card" id="drone" aria-labelledby="drone-title">
+          <div class="card-head">
+            <div>
+              <h2 id="drone-title">Stemtone og drone</h2>
+              <p class="small muted" id="drone-info">A4 · 440,00 Hz</p>
+            </div>
+            <button type="button" id="drone-toggle" class="primary compact" aria-pressed="false">▶ Spil</button>
+          </div>
+          <div class="field">
+            <div class="note-grid" id="drone-notes" role="radiogroup" aria-label="Tone"></div>
+          </div>
+          <div class="field inline">
+            <span class="field-label">Oktav</span>
+            <div class="stepper">
+              <button type="button" class="icon-btn" id="drone-oct-down" aria-label="Oktav ned">−</button>
+              <span id="drone-oct">4</span>
+              <button type="button" class="icon-btn" id="drone-oct-up" aria-label="Oktav op">+</button>
+            </div>
+          </div>
+          <div class="field inline">
+            <label class="field-label" for="drone-sound">Klang</label>
+            <select id="drone-sound"></select>
+          </div>
+          <div class="field inline">
+            <label class="field-label" for="drone-fifth">Tilføj kvint (til skalaøvelser)</label>
+            <input type="checkbox" id="drone-fifth" class="switch">
+          </div>
+          <div class="field inline">
+            <label class="field-label" for="drone-volume">Lydstyrke</label>
+            <input type="range" id="drone-volume" class="slider small-slider" min="0" max="100" step="1">
+          </div>
+        </section>
+      </section>
+
+      <!-- ============ Metronom ============ -->
+      <section class="view" id="view-metronome" aria-labelledby="tab-metronome" hidden>
+        <div class="met-main" id="met-main">
+          <svg class="pendulum" viewBox="0 0 240 128" aria-hidden="true">
+            <path class="pendulum-arc" d="M 67 30.2 A 106 106 0 0 1 173 30.2"></path>
+            <g id="pendulum-arm">
+              <line x1="120" y1="122" x2="120" y2="16"></line>
+              <circle cx="120" cy="16" r="7"></circle>
+            </g>
+            <circle class="pivot" cx="120" cy="122" r="5"></circle>
+          </svg>
+
+          <div class="beats" id="met-beats" role="group" aria-label="Slag i takten – tryk for at skifte betoning"></div>
+
+          <div class="bpm-row">
+            <button type="button" class="round-btn" id="bpm-down" aria-label="Langsommere">−</button>
+            <div class="bpm-readout">
+              <output id="bpm-value" for="bpm-slider">120</output>
+              <div class="bpm-meta"><span class="bpm-unit">BPM</span> · <span id="tempo-name">Allegro</span></div>
+            </div>
+            <button type="button" class="round-btn" id="bpm-up" aria-label="Hurtigere">+</button>
+          </div>
+          <input type="range" id="bpm-slider" class="slider" min="20" max="300" step="1" aria-label="Tempo i slag pr. minut">
+
+          <div class="met-actions">
+            <button type="button" id="tap" class="secondary">Tap tempo</button>
+            <button type="button" id="met-toggle" class="primary">Start</button>
+          </div>
+        </div>
+
+        <div class="met-settings">
+          <div class="field">
+            <span class="field-label">Taktart</span>
+            <div class="chip-row" id="meters"></div>
+          </div>
+          <div class="field inline">
+            <span class="field-label">Slag pr. takt</span>
+            <div class="stepper">
+              <button type="button" class="icon-btn" id="beats-down" aria-label="Færre slag pr. takt">−</button>
+              <span id="beats-value">4</span>
+              <button type="button" class="icon-btn" id="beats-up" aria-label="Flere slag pr. takt">+</button>
+            </div>
+          </div>
+          <div class="field">
+            <span class="field-label">Underdeling (klik pr. slag)</span>
+            <div class="segmented" id="subdivs" role="radiogroup" aria-label="Underdeling"></div>
+          </div>
+          <div class="field inline">
+            <label class="field-label" for="met-sound">Lyd</label>
+            <select id="met-sound"></select>
+          </div>
+          <div class="field inline">
+            <label class="field-label" for="met-volume">Lydstyrke</label>
+            <input type="range" id="met-volume" class="slider small-slider" min="0" max="100" step="1">
+          </div>
+          <div class="field">
+            <div class="field-row">
+              <label class="field-label" for="trainer-on">Tempotræner – skru gradvist op (eller ned)</label>
+              <input type="checkbox" id="trainer-on" class="switch">
+            </div>
+            <div class="trainer" id="trainer" hidden>
+              <div class="trainer-grid">
+                <div class="mini">
+                  <span class="mini-label">Skridt</span>
+                  <div class="stepper">
+                    <button type="button" class="icon-btn" data-tr="step" data-d="-1" aria-label="Mindre skridt">−</button>
+                    <span id="tr-step">5</span>
+                    <button type="button" class="icon-btn" data-tr="step" data-d="1" aria-label="Større skridt">+</button>
+                  </div>
+                  <span class="mini-unit">BPM</span>
+                </div>
+                <div class="mini">
+                  <span class="mini-label">Hver</span>
+                  <div class="stepper">
+                    <button type="button" class="icon-btn" data-tr="bars" data-d="-1" aria-label="Færre takter">−</button>
+                    <span id="tr-bars">4</span>
+                    <button type="button" class="icon-btn" data-tr="bars" data-d="1" aria-label="Flere takter">+</button>
+                  </div>
+                  <span class="mini-unit">takter</span>
+                </div>
+                <div class="mini">
+                  <span class="mini-label">Mål</span>
+                  <div class="stepper">
+                    <button type="button" class="icon-btn" data-tr="target" data-d="-5" aria-label="Lavere mål">−</button>
+                    <span id="tr-target">140</span>
+                    <button type="button" class="icon-btn" data-tr="target" data-d="5" aria-label="Højere mål">+</button>
+                  </div>
+                  <span class="mini-unit">BPM</span>
+                </div>
+              </div>
+              <p class="small muted trainer-status" id="trainer-status"></p>
+            </div>
+          </div>
+        </div>
+        <p class="small muted footnote">Tryk på søjlerne for at skifte betoning: stærk, middel, svag, stille. Mellemrum starter og stopper.</p>
+      </section>
+
+      <!-- ============ Akkorder ============ -->
+      <section class="view" id="view-chords" aria-labelledby="tab-chords" hidden>
+        <div class="chord-top">
+          <div class="segmented" id="chord-instruments" role="radiogroup" aria-label="Instrument"></div>
+          <select id="chord-tuning" aria-label="Stemning"></select>
+        </div>
+
+        <div class="card chord-card">
+          <div class="card-head">
+            <div>
+              <div class="chord-name" id="chord-name">C</div>
+              <div class="small muted" id="chord-tones">&nbsp;</div>
+            </div>
+            <button type="button" id="chord-play" class="primary compact">▶ Spil</button>
+          </div>
+          <svg id="chord-diagram" class="chord-diagram" viewBox="0 0 240 262" role="img" aria-label="Akkorddiagram"></svg>
+          <div class="variant-row">
+            <button type="button" class="icon-btn" id="var-prev" aria-label="Forrige greb">‹</button>
+            <span id="var-label" class="small muted">&nbsp;</span>
+            <button type="button" class="icon-btn" id="var-next" aria-label="Næste greb">›</button>
+          </div>
+          <p class="small chord-capo-note" id="chord-capo-note" hidden></p>
+        </div>
+
+        <div class="card">
+          <div class="field">
+            <span class="field-label">Grundtone</span>
+            <div class="note-grid" id="chord-roots" role="radiogroup" aria-label="Grundtone"></div>
+          </div>
+          <div class="field">
+            <span class="field-label">Type</span>
+            <div class="chip-row" id="chord-qualities" role="radiogroup" aria-label="Akkordtype"></div>
+          </div>
+          <div class="field inline">
+            <span class="field-label">Capo</span>
+            <div class="stepper">
+              <button type="button" class="icon-btn" id="chord-capo-down" aria-label="Capo ét bånd ned">−</button>
+              <span id="chord-capo">Ingen</span>
+              <button type="button" class="icon-btn" id="chord-capo-up" aria-label="Capo ét bånd op">+</button>
+            </div>
+          </div>
+        </div>
+        <p class="small muted footnote">Vælg den akkord, der skal lyde. Med capo viser diagrammet det greb, du tager over capoen. Grønne prikker er grundtonen.</p>
+      </section>
+
+      <!-- ============ Gehørtræning ============ -->
+      <section class="view" id="view-ear" aria-labelledby="tab-ear" hidden>
+        <div class="segmented" id="ear-modes" role="radiogroup" aria-label="Øvelse"></div>
+
+        <div class="card ear-card">
+          <div class="ear-score">
+            <span>Rigtige <b id="ear-correct">0</b> af <b id="ear-total">0</b></span>
+            <span>Stime <b id="ear-streak">0</b> · Rekord <b id="ear-best">0</b></span>
+          </div>
+          <div class="ear-prompt" id="ear-prompt">Tryk på "Ny opgave" for at begynde</div>
+          <div class="ear-feedback" id="ear-feedback" aria-live="polite">&nbsp;</div>
+          <div class="ear-answers" id="ear-answers"></div>
+
+          <div class="match" id="ear-match" hidden>
+            <div class="match-meter" aria-hidden="true">
+              <div class="match-zone"></div>
+              <div class="match-center"></div>
+              <div class="match-needle" id="match-needle"></div>
+            </div>
+            <div class="match-readout" id="match-readout">&nbsp;</div>
+            <p class="error" id="match-error" hidden></p>
+          </div>
+
+          <div class="ear-actions">
+            <button type="button" class="secondary" id="ear-replay" disabled>↻ Hør igen</button>
+            <button type="button" class="secondary" id="ear-listen" hidden>🎤 Lyt</button>
+            <button type="button" class="primary" id="ear-next">Ny opgave</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="field" data-ear="interval">
+            <span class="field-label">Intervaller i spil</span>
+            <div class="chip-row" id="ear-interval-opts"></div>
+          </div>
+          <div class="field" data-ear="interval">
+            <span class="field-label">Retning</span>
+            <div class="segmented" id="ear-direction" role="radiogroup" aria-label="Retning"></div>
+          </div>
+          <div class="field" data-ear="chord">
+            <span class="field-label">Akkordtyper i spil</span>
+            <div class="chip-row" id="ear-chord-opts"></div>
+          </div>
+          <div class="field inline" data-ear="match">
+            <label class="field-label" for="match-range">Toneområde</label>
+            <select id="match-range"></select>
+          </div>
+          <div class="field inline" data-ear="match">
+            <label class="field-label" for="match-any-octave">Alle oktaver tæller</label>
+            <input type="checkbox" id="match-any-octave" class="switch" checked>
+          </div>
+        </div>
+        <p class="small muted footnote" id="ear-help"></p>
+      </section>
+
+      <!-- ============ Øvelog ============ -->
+      <section class="view" id="view-practice" aria-labelledby="tab-practice" hidden>
+        <div class="card timer-card">
+          <div class="timer" id="pr-timer" role="timer" aria-live="off">0:00</div>
+          <input id="pr-note" class="text-input" type="text" maxlength="80" list="pr-suggestions"
+                 placeholder="Hvad øver du? F.eks. skalaer eller en ny sang" aria-label="Hvad øver du?">
+          <datalist id="pr-suggestions"></datalist>
+          <div class="small muted pr-live" id="pr-live">&nbsp;</div>
+          <div class="met-actions">
+            <button type="button" class="secondary" id="pr-reset" disabled>Nulstil</button>
+            <button type="button" class="primary" id="pr-toggle">Start</button>
+            <button type="button" class="secondary" id="pr-save" disabled>Gem</button>
+          </div>
+        </div>
+
+        <div class="card goal-card">
+          <svg class="goal-ring" viewBox="0 0 64 64" aria-hidden="true">
+            <circle cx="32" cy="32" r="27" class="ring-bg"></circle>
+            <circle cx="32" cy="32" r="27" class="ring-fg" id="goal-ring"></circle>
+          </svg>
+          <div class="goal-body">
+            <div class="goal-text" id="goal-text">0 af 20 min i dag</div>
+            <div class="stepper goal-stepper">
+              <span class="small muted">Dagligt mål</span>
+              <button type="button" class="icon-btn" id="goal-down" aria-label="Lavere dagligt mål">−</button>
+              <span id="goal-min">20</span>
+              <button type="button" class="icon-btn" id="goal-up" aria-label="Højere dagligt mål">+</button>
+              <span class="small muted">min</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="stats" id="pr-stats"></div>
+
+        <div class="card">
+          <div class="card-head"><h2>De seneste 16 uger</h2></div>
+          <div class="heatmap-wrap">
+            <div class="heatmap-days small muted" aria-hidden="true"><span>Man</span><span></span><span>Ons</span><span></span><span>Fre</span><span></span><span>Søn</span></div>
+            <div class="heatmap" id="pr-heatmap"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <h2>Øvepas</h2>
+            <button type="button" class="secondary compact" id="pr-export">Eksportér CSV</button>
+          </div>
+          <ul class="sessions" id="pr-sessions"></ul>
+        </div>
+      </section>
+    </main>
+
+    <nav class="tabbar" role="tablist" aria-label="Værktøjer">
+      <button type="button" role="tab" id="tab-tuner" data-view="tuner" aria-controls="view-tuner" aria-selected="true">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 2v8a3 3 0 0 0 6 0V2M12 13v9M9.5 22h5"/></svg>
+        <span>Stem</span>
+      </button>
+      <button type="button" role="tab" id="tab-metronome" data-view="metronome" aria-controls="view-metronome" aria-selected="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6l4 18H5L9 3zM12 17l5-10M7.5 15h9"/></svg>
+        <span>Metronom</span>
+      </button>
+      <button type="button" role="tab" id="tab-chords" data-view="chords" aria-controls="view-chords" aria-selected="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14M5 4v16M9.7 4v16M14.3 4v16M19 4v16M5 9.3h14M5 14.6h14"/><circle cx="12" cy="12" r="1.6"/><circle cx="16.7" cy="17.3" r="1.6"/></svg>
+        <span>Akkorder</span>
+      </button>
+      <button type="button" role="tab" id="tab-ear" data-view="ear" aria-controls="view-ear" aria-selected="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 9a5 5 0 0 1 10 0c0 3.5-3.5 4.5-3.5 8a3 3 0 0 1-5.5 1.7M10 9.5a2 2 0 0 1 4 0c0 1.5-2 2-2 3.5"/></svg>
+        <span>Gehør</span>
+      </button>
+      <button type="button" role="tab" id="tab-practice" data-view="practice" aria-controls="view-practice" aria-selected="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M10 2.5h4M12 2.5V5"/></svg>
+        <span>Øvelog</span>
+      </button>
+    </nav>
+  </div>
+
+  <script src="js/audio.js"></script>
+  <script src="js/tunings.js"></script>
+  <script src="js/pitch.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/drone.js"></script>
+  <script src="js/metronome.js"></script>
+  <script src="js/chords.js"></script>
+  <script src="js/ear.js"></script>
+  <script src="js/practice.js"></script>
+  <script src="js/nav.js"></script>
+  <script src="js/pwa.js"></script>
+</body>
+</html>
