@@ -1,5 +1,7 @@
 # Stemmeapparat
 
+**Live:** https://frederikaxboeg-create.github.io/stemmeapparat/
+
 Web-app til strengeinstrumenter med fem værktøjer: stemmeapparat (med stemtone/drone), metronom (med tempotræner), akkordbibliotek, gehørtræning og øvelog. Den kan installeres som app og virker uden internet. Den kører helt i browseren, har ingen afhængigheder og kræver ikke noget build-trin.
 
 **Instrumenter:** guitar, 12-strenget guitar, bas (4, 5 og 6 strenge), ukulele, violin, bratsch, cello og kontrabas, hver med flere stemninger.
@@ -59,8 +61,13 @@ python3 -m http.server 8000
 
 Åbn derefter http://localhost:8000.
 
-## Brug på telefonen
-Læg mappen på en gratis statisk host med HTTPS, for eksempel GitHub Pages eller Netlify, og åbn adressen på telefonen. Installér den derefter som beskrevet ovenfor.
+## Udgiv ændringer
+Appen ligger på GitHub Pages fra `main`-grenen. For at udgive en ændring:
+
+1. Hæv `CACHE`-versionen i `sw.js` (f.eks. `stemmeapparat-v2`), så installerede apps henter de nye filer
+2. `git commit -am "Beskrivelse"` og `git push`
+
+Siden er opdateret efter et par minutter.
 
 ## Filer
 - `index.html`: sidens opbygning
