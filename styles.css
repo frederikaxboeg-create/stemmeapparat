@@ -752,100 +752,13 @@ input.switch:checked::after { transform: translateX(18px); }
 }
 .match-readout { text-align: center; margin-top: 8px; color: var(--level); font-weight: 600; min-height: 1.4em; }
 
-/* ============ Øvelog ============ */
-.timer-card { padding: 18px 14px 14px; display: flex; flex-direction: column; gap: 12px; text-align: center; }
-.timer {
-  font-size: 64px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  line-height: 1;
-  letter-spacing: -0.02em;
-  color: var(--muted);
-}
-.timer.running { color: var(--text); }
-.text-input {
-  width: 100%;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 10px 12px;
-  font: inherit;
-  color: inherit;
-}
-.text-input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-.pr-live { min-height: 1.4em; }
-
-.goal-card { display: flex; align-items: center; gap: 14px; padding: 14px; }
-.goal-ring { width: 64px; height: 64px; flex: none; transform: rotate(-90deg); }
-.ring-bg { fill: none; stroke: var(--surface-2); stroke-width: 8; }
-.ring-fg { fill: none; stroke: var(--accent); stroke-width: 8; stroke-linecap: round; transition: stroke-dashoffset 0.4s; }
-.ring-fg.done { stroke: var(--in); }
-.goal-text { font-weight: 700; margin-bottom: 6px; }
-.goal-stepper { gap: 8px; font-size: 15px; }
-
-.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-.stat {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 10px 8px;
-  text-align: center;
-}
-.stat-label { font-size: 12px; color: var(--muted); }
-.stat-value { font-size: 16px; font-weight: 700; margin-top: 2px; font-variant-numeric: tabular-nums; }
-
-.heatmap-wrap { display: flex; gap: 6px; padding: 0 14px 14px; }
-.heatmap-days { display: grid; grid-template-rows: repeat(7, 1fr); font-size: 10px; line-height: 1; align-items: center; }
-.heatmap {
-  flex: 1;
-  display: grid;
-  grid-template-columns: repeat(16, 1fr);
-  grid-template-rows: repeat(7, 1fr);
-  gap: 3px;
-}
-.hm { aspect-ratio: 1; border-radius: 3px; background: var(--surface-2); }
-.hm[data-l="1"] { background: color-mix(in srgb, var(--in) 30%, var(--surface-2)); }
-.hm[data-l="2"] { background: color-mix(in srgb, var(--in) 55%, var(--surface-2)); }
-.hm[data-l="3"] { background: color-mix(in srgb, var(--in) 80%, var(--surface-2)); }
-.hm[data-l="4"] { background: var(--in); }
-.hm.future { background: transparent; }
-.hm.today { outline: 1.5px solid var(--text); outline-offset: -1px; }
-
-.sessions { list-style: none; margin: 0; padding: 0 0 4px; }
-.sessions li {
-  position: relative;
-  padding: 10px 44px 10px 14px;
-  border-top: 1px solid var(--border);
-}
-.sessions li.empty { padding: 14px; }
-.s-main { display: flex; gap: 10px; align-items: baseline; }
-.s-dur { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.s-note { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.s-del {
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  border: none;
-  background: transparent;
-  color: var(--muted);
-  font-size: 20px;
-  cursor: pointer;
-}
-.s-del:hover { background: var(--surface-2); color: var(--far); }
-
-/* ============ Fanebjælke med fem faner ============ */
+/* ============ Fanebjælke ============ */
 .tabbar button { font-size: 11px; min-width: 0; }
 .tabbar button span { white-space: nowrap; }
 .tabbar svg circle { fill: none; }
 
 @media (max-width: 380px) {
-  .stats { grid-template-columns: repeat(2, 1fr); }
   .chord-top { flex-direction: column; align-items: stretch; }
-  .timer { font-size: 54px; }
 }
 
 /* Mikrofonniveau: viser at mikrofonen hører noget */
@@ -866,3 +779,9 @@ input.switch:checked::after { transform: translateX(18px); }
 }
 .level.hot span { background: var(--accent); }
 .display[data-state="off"] .level { display: none; }
+
+/* Akkorder: vælg position på gribebrættet */
+.pos-label { font-weight: 700; min-width: 120px; text-align: center; }
+.pos-picker { padding: 0 14px 14px; display: flex; flex-direction: column; gap: 8px; }
+.pos-strip { display: flex; flex-wrap: wrap; gap: 6px; }
+.pos-strip .chip { min-width: 44px; padding: 6px 10px; font-variant-numeric: tabular-nums; }

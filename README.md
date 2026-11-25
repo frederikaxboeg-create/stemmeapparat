@@ -2,7 +2,7 @@
 
 **Live:** https://frederikaxboeg-create.github.io/stemmeapparat/
 
-Web-app til strengeinstrumenter med fem værktøjer: stemmeapparat (med stemtone/drone), metronom (med tempotræner), akkordbibliotek, gehørtræning og øvelog. Den kan installeres som app og virker uden internet. Den kører helt i browseren, har ingen afhængigheder og kræver ikke noget build-trin.
+Web-app til strengeinstrumenter med fire værktøjer: stemmeapparat (med stemtone/drone), metronom (med tempotræner), akkordbibliotek og gehørtræning. Den kan installeres som app og virker uden internet. Den kører helt i browseren, har ingen afhængigheder og kræver ikke noget build-trin.
 
 **Instrumenter:** guitar, 12-strenget guitar, bas (4, 5 og 6 strenge), ukulele, violin, bratsch, cello og kontrabas, hver med flere stemninger.
 
@@ -30,7 +30,8 @@ Web-app til strengeinstrumenter med fem værktøjer: stemmeapparat (med stemtone
 ## Akkorder
 - Guitar og ukulele i alle stemninger fra stemmeapparatet (også DADGAD, Open G, lav G osv.)
 - 15 akkordtyper: dur, mol, 7, maj7, m7, sus2, sus4, add9, 6, 9, dim, m7♭5, dim7, aug og powerchords
-- Grebene beregnes ud fra stemningen; i standardstemning vises de kendte standardgreb først. Bladr mellem op til 8 greb
+- Vælg hvor på gribebrættet akkorden skal tages: åben position, 3., 5., 8. bånd osv. Positionerne følger de klassiske former (som på all-guitar-chords.com), og appen husker positionen, når du skifter akkord
+- Grebene beregnes ud fra stemningen, så de også passer til alternative stemninger og ukulele
 - Diagrammet viser grundtonen i grønt, tonetrin (1, 3, 5 …) på hver prik og den klingende tone under hver streng
 - Capo: vælg den akkord, der skal lyde, og se hvilket greb du skal tage over capoen
 - "Spil" anslår akkorden med syntetiske strenge
@@ -40,12 +41,6 @@ Web-app til strengeinstrumenter med fem værktøjer: stemmeapparat (med stemtone
 - **Akkorder:** genkend dur, mol, formindsket, forstørret, sus4, 7, maj7 og m7
 - **Ram tonen:** appen spiller en tone, og du synger eller spiller den, mens mikrofonen viser hvor tæt du er
 - Point, stime og rekord for hver øvelse
-
-## Øvelog
-- Tidtager der fortsætter, selvom du skifter fane eller genindlæser siden
-- Registrerer automatisk det højeste metronomtempo i passet
-- Dagligt mål med fremskridtsring, statistik (i dag, uge, stime, i alt) og en kalender over de seneste 16 uger
-- Eksport til CSV (åbner i Excel/Numbers)
 
 ## Installér som app
 - **Android/Chrome/Edge:** tryk "Installér" øverst, eller brug browserens menu
@@ -80,6 +75,5 @@ Siden er opdateret efter et par minutter.
 - `js/drone.js`: stemtone og drone
 - `js/chords.js`: akkordbibliotek og greb-generator
 - `js/ear.js`: gehørtræning
-- `js/practice.js`: øvelog
 - `js/nav.js`: fanebjælken
 - `js/pwa.js`, `sw.js`, `manifest.webmanifest`, `icons/`: installérbar app og offline-cache. Hæv `CACHE`-versionen i `sw.js`, når du udgiver ændringer

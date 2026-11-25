@@ -1,7 +1,7 @@
 {
-  "name": "Stemmeapparat – stem, metronom, akkorder og øvelog",
+  "name": "Stemmeapparat – stem, metronom, akkorder og gehør",
   "short_name": "Stemmeapparat",
-  "description": "Stemmeapparat, metronom, akkordbibliotek, gehørtræning og øvelog til strengeinstrumenter.",
+  "description": "Stemmeapparat, metronom, akkordbibliotek og gehørtræning til strengeinstrumenter.",
   "lang": "da",
   "start_url": "./",
   "scope": "./",
@@ -19,7 +19,6 @@
   "shortcuts": [
     { "name": "Stem", "url": "./#stem", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
     { "name": "Metronom", "url": "./#metronom", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
-    { "name": "Akkorder", "url": "./#akkorder", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
-    { "name": "Øvelog", "url": "./#oevelog", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] }
+    { "name": "Akkorder", "url": "./#akkorder", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] }
   ]
 }

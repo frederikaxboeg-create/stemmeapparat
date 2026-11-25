@@ -7,10 +7,12 @@
   var IN_TUNE_CENTS = 3;     // inden for ± dette = stemt
   var NEAR_CENTS = 12;       // inden for ± dette = tæt på
   var HOLD_MS = 700;         // så længe skal strengen være stemt før den får et flueben
-  var STALE_MS = 350;        // uden lyd: vis aflæsningen nedtonet
+  var STALE_MS = 600;        // uden lyd: vis aflæsningen nedtonet
   var RESET_MS = 2000;       // uden lyd: nulstil visningen
-  var GATE_RMS = 0.006;      // højeste støjgrænse
-  var GATE_MIN_RMS = 0.0012; // laveste støjgrænse (svage telefonmikrofoner)
+  var GATE_RMS = 0.004;      // højeste støjgrænse
+  var NOISE_FRAMES = 100;    // ca. 3 sekunders historik til at måle baggrundsstøj
+  var GATE_MIN_RMS = 0.0008; // laveste støjgrænse (svage telefonmikrofoner)
+  var MIN_CLARITY = 0.88;    // målinger under dette er for usikre til at vise
   var ANALYSE_EVERY_MS = 30;
   var GAUGE_DEG = 60;        // ±50 cent = ±60 grader
   var A4_MIN = 415, A4_MAX = 466;
@@ -63,10 +65,12 @@
 
   var det = {
     history: [],
+    smooth: null,
     lastHeard: 0,
     timer: 0,
-    gate: 0.006,
+    gate: 0.0015,
     noise: 0,
+    rmsHist: [],
     badSince: 0,
     lastCtxTime: -1,
     recoveries: 0,
@@ -458,7 +462,7 @@
       return connectStream(stream).then(function () {
         state.listening = true;
         det.recoveries = 0;
-        det.noise = 0;
+        det.rmsHist = [];
         window.AudioShared.keepAwake('tuner', true);
         el.stop.hidden = false;
         setIdleReading();
@@ -577,22 +581,41 @@
 
     // Støjgrænsen følger baggrundsstøjen: falder straks, stiger langsomt.
     // Så virker svage telefonmikrofoner også, uden at støj tolkes som toner.
-    det.noise = !det.noise || rms < det.noise ? rms : det.noise * 0.997 + rms * 0.003;
-    det.gate = Math.min(GATE_RMS, Math.max(GATE_MIN_RMS, det.noise * 3));
+    // Baggrundsstøjen er den laveste lydstyrke i de seneste 3 sekunder. Så tæller
+    // stilheden før anslaget med, mens en streng der klinger ud aldrig forveksles
+    // med støj. Klarhedsfilteret nedenfor sorterer resten af støjen fra.
+    det.rmsHist.push(rms);
+    if (det.rmsHist.length > NOISE_FRAMES) det.rmsHist.shift();
+    det.noise = Math.min.apply(null, det.rmsHist);
+    det.gate = Math.min(GATE_RMS, Math.max(GATE_MIN_RMS, det.noise * 2));
     setLevel(rms);
 
     var res = rms >= det.gate ? P.detectPitch(buf, audio.ctx.sampleRate, range.min, range.max) : null;
-    if (!res) return silence(now);
+    // Usikre målinger (lav klarhed) er dem, der giver oktavspring og hop – de springes over
+    if (!res || res.clarity < MIN_CLARITY) return silence(now);
 
-    // Udglatning: median af de seneste målinger, nulstilles ved tonespring
+    // Udglatning:
+    // 1) et spring på over en halv halvtone betyder ny tone → start forfra
+    // 2) vægtet gennemsnit af de seneste målinger, hvor sikre målinger tæller mest
+    // 3) en blød efterglødning, så tallet ikke flimrer
     var m = 69 + 12 * Math.log2(res.freq / state.a4);
-    if (det.history.length && Math.abs(m - median(det.history)) > 0.6) det.history.length = 0;
-    det.history.push(m);
-    if (det.history.length > 5) det.history.shift();
+    var ms = det.history.map(function (h) { return h.m; });
+    if (ms.length && Math.abs(m - median(ms)) > 0.5) { det.history.length = 0; ms = []; }
+    if (!det.history.length) det.smooth = null;
+    det.history.push({ m: m, w: Math.max(0.05, res.clarity - 0.85) });
+    if (det.history.length > 7) det.history.shift();
     if (det.history.length < 2) return;
 
+    var mid = median(det.history.map(function (h) { return h.m; }));
+    var sum = 0, wsum = 0;
+    det.history.forEach(function (h) {
+      if (Math.abs(h.m - mid) <= 0.25) { sum += h.m * h.w; wsum += h.w; }
+    });
+    var target = wsum ? sum / wsum : mid;
+    det.smooth = det.smooth == null ? target : det.smooth + 0.35 * (target - det.smooth);
+
     det.lastHeard = now;
-    var f = state.a4 * Math.pow(2, (median(det.history) - 69) / 12);
+    var f = state.a4 * Math.pow(2, (det.smooth - 69) / 12);
     showReading(f, now);
   }
 

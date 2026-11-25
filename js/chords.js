@@ -28,6 +28,8 @@
     { id: '5', label: '5 (power)', suffix: '5', iv: [0, 7], req: [0, 7], power: true }
   ];
   var INSTRUMENT_IDS = ['guitar', 'ukulele'];
+  var MAX_FRET = 15;
+  var MAX_PLAY = 8;   // greb der er sværere end dette, vises ikke som position
 
   // De greb, man lærer først. De får forrang i standardstemning, så biblioteket
   // viser de velkendte former før andre (lige så korrekte) muligheder.
@@ -111,15 +113,21 @@
 
       var mutes = n - count;
       var opens = fr.filter(function (f) { return f === 0; }).length;
+      // Løse strenge blandet med greb højt oppe er svære at styre og bruges sjældent
+      if (opens && maxF > 5) return;
       var span = maxF - minF;
       var s = minF * 0.9 + span * span * 0.35 + fingers * 0.35 + (barre ? 1 : 0);
       s += q.power ? Math.max(0, count - 3) * 1.2 : mutes * (guitarLike ? 1.5 : 5);
       // Løse strenge hjælper i de lave greb, men blandet med høje bånd er de usædvanlige
       s += opens * (maxF <= 3 ? -0.3 : 0.4);
       q.iv.forEach(function (iv) { if (!present[iv]) s += 0.7; });
+      // Spilbarhed uafhængigt af hvor på halsen grebet ligger (til at sammenligne positioner)
+      var play = s - minF * 0.9;
       var shape = fr.map(function (f) { return f < 0 ? 'x' : f; }).join('');
       if (known && known.indexOf(shape) >= 0) s -= 4;
-      list.push({ frets: fr, barre: barre, minF: minF, maxF: maxF, score: s });
+      // Position på halsen: åben position, eller det laveste bånd der gribes
+      var pos = opens && maxF <= 5 ? 0 : minF;
+      list.push({ frets: fr, barre: barre, minF: minF, maxF: maxF, pos: pos, score: s, play: play });
     }
 
     for (var lo = 1; lo + 3 <= Math.max(4, maxFret); lo++) {
@@ -136,7 +144,21 @@
       })(0);
     }
     list.sort(function (a, b) { return a.score - b.score; });
-    return list.slice(0, 8);
+    return list;
+  }
+
+  // Det bedste greb for hver position op ad halsen. Positioner hvor det bedste
+  // greb er markant sværere end de andre (akavede stræk, mange dæmpede strenge)
+  // vises ikke.
+  function positions(list) {
+    var byPos = {};
+    list.forEach(function (v) { if (!byPos[v.pos] || v.score < byPos[v.pos].score) byPos[v.pos] = v; });
+    var all = Object.keys(byPos).map(function (k) { return byPos[k]; });
+    if (!all.length) return [];
+    var keep = all.filter(function (v) { return v.play <= MAX_PLAY; });
+    // Sjældne akkordtyper kan mangle lette greb; vis så de seks letteste
+    if (!keep.length) keep = all.sort(function (a, b) { return a.play - b.play; }).slice(0, 6);
+    return keep.sort(function (a, b) { return a.pos - b.pos; });
   }
 
   // ---------- Tilstand ----------
@@ -152,6 +174,7 @@
     prev: $('var-prev'),
     next: $('var-next'),
     varLabel: $('var-label'),
+    positions: $('chord-positions'),
     capoNote: $('chord-capo-note'),
     roots: $('chord-roots'),
     qualities: $('chord-qualities'),
@@ -160,8 +183,8 @@
     capoUp: $('chord-capo-up')
   };
 
-  var state = { instrumentId: 'guitar', tuningId: 'standard', root: 0, quality: 'maj', capo: 0 };
-  var variant = 0;
+  var state = { instrumentId: 'guitar', tuningId: 'standard', root: 0, quality: 'maj', capo: 0, pos: 0 };
+  var variant = 0;   // indeks i listen af positioner
   var current = [];
 
   function load() {
@@ -173,6 +196,7 @@
       if (s.root >= 0 && s.root < 12) state.root = s.root;
       if (QUALITIES.some(function (q) { return q.id === s.quality; })) state.quality = s.quality;
       if (s.capo >= 0 && s.capo <= 9) state.capo = s.capo;
+      if (s.pos >= 0 && s.pos <= MAX_FRET) state.pos = s.pos;
     } catch (e) { /* standard */ }
   }
   function save() {
@@ -200,7 +224,7 @@
     var open = openMidis(), n = open.length, q = quality();
     var W = 240, left = 44, right = 200, top = 44, fretH = 38, rows = 5;
     var gap = (right - left) / (n - 1);
-    var base = v.maxF <= 5 ? 1 : v.minF;
+    var base = v.pos === 0 || v.maxF <= 4 ? 1 : v.minF;
     var x = function (i) { return left + i * gap; };
     var y = function (f) { return top + (f - base + 0.5) * fretH; };
     var svg = '';
@@ -250,12 +274,37 @@
 
   // ---------- Rendering ----------
 
+  function posName(p) { return p === 0 ? 'Åben position' : p + '. bånd'; }
+
+  function renderPositions() {
+    el.positions.innerHTML = current.map(function (v, i) {
+      return '<button type="button" role="radio" class="chip" data-i="' + i + '" aria-checked="' + (i === variant) +
+        '" aria-label="' + posName(v.pos) + '">' + (v.pos === 0 ? 'Åben' : v.pos) + '</button>';
+    }).join('');
+    el.positions.querySelectorAll('button').forEach(function (b) {
+      b.addEventListener('click', function () { choose(Number(b.dataset.i)); });
+    });
+    el.prev.disabled = variant <= 0;
+    el.next.disabled = variant >= current.length - 1;
+  }
+
+  function choose(i) {
+    if (!current.length) return;
+    variant = Math.max(0, Math.min(current.length - 1, i));
+    state.pos = current[variant].pos;
+    save();
+    drawDiagram(current[variant]);
+    el.varLabel.textContent = posName(current[variant].pos);
+    renderPositions();
+  }
+
   function chordName(root) { return ROOTS[root] + quality().suffix; }
 
   function update() {
     var q = quality();
-    current = voicings(openMidis(), shapeRoot(), q, 12 - state.capo);
-    if (variant >= current.length) variant = 0;
+    current = positions(voicings(openMidis(), shapeRoot(), q, MAX_FRET - state.capo));
+    variant = 0;
+    current.forEach(function (v, i) { if (Math.abs(v.pos - state.pos) < Math.abs(current[variant].pos - state.pos)) variant = i; });
 
     el.name.textContent = chordName(state.root);
     el.tones.textContent = 'Toner: ' + q.iv.map(function (i) { return ROOTS[(state.root + i) % 12]; }).join(' – ') +
@@ -266,10 +315,10 @@
       el.varLabel.textContent = '';
     } else {
       drawDiagram(current[variant]);
-      el.varLabel.textContent = 'Greb ' + (variant + 1) + ' af ' + current.length +
-        (current[variant].minF > 4 ? ' · ' + current[variant].minF + '. bånd' : '');
+      el.varLabel.textContent = posName(current[variant].pos);
+      renderPositions();
     }
-    el.prev.disabled = el.next.disabled = current.length < 2;
+    if (!current.length) { el.prev.disabled = el.next.disabled = true; el.positions.innerHTML = ''; }
     el.play.disabled = !current.length;
 
     el.capoNote.hidden = !state.capo;
@@ -341,8 +390,8 @@
 
   el.tuning.addEventListener('change', function () { state.tuningId = el.tuning.value; variant = 0; save(); update(); });
   el.play.addEventListener('click', strum);
-  el.prev.addEventListener('click', function () { variant = (variant - 1 + current.length) % current.length; update(); });
-  el.next.addEventListener('click', function () { variant = (variant + 1) % current.length; update(); });
+  el.prev.addEventListener('click', function () { choose(variant - 1); });
+  el.next.addEventListener('click', function () { choose(variant + 1); });
   el.capoDown.addEventListener('click', function () { state.capo = Math.max(0, state.capo - 1); variant = 0; save(); update(); });
   el.capoUp.addEventListener('click', function () { state.capo = Math.min(9, state.capo + 1); variant = 0; save(); update(); });
 
@@ -351,5 +400,5 @@
   renderTunings();
   update();
 
-  window.Chords = { voicings: voicings, QUALITIES: QUALITIES };
+  window.Chords = { voicings: voicings, positions: positions, QUALITIES: QUALITIES };
 })();

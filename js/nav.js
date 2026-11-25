@@ -9,8 +9,7 @@
     tuner: { title: 'Stemmeapparat', hash: 'stem', onHide: function () { if (window.Tuner) window.Tuner.stop(); } },
     metronome: { title: 'Metronom', hash: 'metronom' },
     chords: { title: 'Akkorder', hash: 'akkorder' },
-    ear: { title: 'Gehørtræning', hash: 'gehoer', onHide: function () { if (window.Ear) window.Ear.stop(); } },
-    practice: { title: 'Øvelog', hash: 'oevelog' }
+    ear: { title: 'Gehørtræning', hash: 'gehoer', onHide: function () { if (window.Ear) window.Ear.stop(); } }
   };
   Object.keys(VIEWS).forEach(function (k) { VIEWS[k].el = document.getElementById('view-' + k); });
 

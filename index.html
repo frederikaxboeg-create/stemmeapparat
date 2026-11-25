@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#101216">
-  <meta name="description" content="Stemmeapparat, metronom, akkordbibliotek, gehørtræning og øvelog til guitar, 12-strenget guitar, bas, ukulele, violin, bratsch, cello og kontrabas.">
+  <meta name="description" content="Stemmeapparat, metronom, akkordbibliotek, og gehørtræning til guitar, 12-strenget guitar, bas, ukulele, violin, bratsch, cello og kontrabas.">
   <title>Stemmeapparat</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
@@ -236,9 +236,13 @@
           </div>
           <svg id="chord-diagram" class="chord-diagram" viewBox="0 0 240 262" role="img" aria-label="Akkorddiagram"></svg>
           <div class="variant-row">
-            <button type="button" class="icon-btn" id="var-prev" aria-label="Forrige greb">‹</button>
-            <span id="var-label" class="small muted">&nbsp;</span>
-            <button type="button" class="icon-btn" id="var-next" aria-label="Næste greb">›</button>
+            <button type="button" class="icon-btn" id="var-prev" aria-label="Lavere på halsen">‹</button>
+            <span id="var-label" class="pos-label">&nbsp;</span>
+            <button type="button" class="icon-btn" id="var-next" aria-label="Højere på halsen">›</button>
+          </div>
+          <div class="pos-picker">
+            <span class="field-label">Position på gribebrættet</span>
+            <div class="pos-strip" id="chord-positions" role="radiogroup" aria-label="Position på gribebrættet"></div>
           </div>
           <p class="small chord-capo-note" id="chord-capo-note" hidden></p>
         </div>
@@ -318,57 +322,6 @@
         </div>
         <p class="small muted footnote" id="ear-help"></p>
       </section>
-
-      <!-- ============ Øvelog ============ -->
-      <section class="view" id="view-practice" aria-labelledby="tab-practice" hidden>
-        <div class="card timer-card">
-          <div class="timer" id="pr-timer" role="timer" aria-live="off">0:00</div>
-          <input id="pr-note" class="text-input" type="text" maxlength="80" list="pr-suggestions"
-                 placeholder="Hvad øver du? F.eks. skalaer eller en ny sang" aria-label="Hvad øver du?">
-          <datalist id="pr-suggestions"></datalist>
-          <div class="small muted pr-live" id="pr-live">&nbsp;</div>
-          <div class="met-actions">
-            <button type="button" class="secondary" id="pr-reset" disabled>Nulstil</button>
-            <button type="button" class="primary" id="pr-toggle">Start</button>
-            <button type="button" class="secondary" id="pr-save" disabled>Gem</button>
-          </div>
-        </div>
-
-        <div class="card goal-card">
-          <svg class="goal-ring" viewBox="0 0 64 64" aria-hidden="true">
-            <circle cx="32" cy="32" r="27" class="ring-bg"></circle>
-            <circle cx="32" cy="32" r="27" class="ring-fg" id="goal-ring"></circle>
-          </svg>
-          <div class="goal-body">
-            <div class="goal-text" id="goal-text">0 af 20 min i dag</div>
-            <div class="stepper goal-stepper">
-              <span class="small muted">Dagligt mål</span>
-              <button type="button" class="icon-btn" id="goal-down" aria-label="Lavere dagligt mål">−</button>
-              <span id="goal-min">20</span>
-              <button type="button" class="icon-btn" id="goal-up" aria-label="Højere dagligt mål">+</button>
-              <span class="small muted">min</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="stats" id="pr-stats"></div>
-
-        <div class="card">
-          <div class="card-head"><h2>De seneste 16 uger</h2></div>
-          <div class="heatmap-wrap">
-            <div class="heatmap-days small muted" aria-hidden="true"><span>Man</span><span></span><span>Ons</span><span></span><span>Fre</span><span></span><span>Søn</span></div>
-            <div class="heatmap" id="pr-heatmap"></div>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-head">
-            <h2>Øvepas</h2>
-            <button type="button" class="secondary compact" id="pr-export">Eksportér CSV</button>
-          </div>
-          <ul class="sessions" id="pr-sessions"></ul>
-        </div>
-      </section>
     </main>
 
     <nav class="tabbar" role="tablist" aria-label="Værktøjer">
@@ -388,10 +341,6 @@
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 9a5 5 0 0 1 10 0c0 3.5-3.5 4.5-3.5 8a3 3 0 0 1-5.5 1.7M10 9.5a2 2 0 0 1 4 0c0 1.5-2 2-2 3.5"/></svg>
         <span>Gehør</span>
       </button>
-      <button type="button" role="tab" id="tab-practice" data-view="practice" aria-controls="view-practice" aria-selected="false">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M10 2.5h4M12 2.5V5"/></svg>
-        <span>Øvelog</span>
-      </button>
     </nav>
   </div>
 
@@ -403,7 +352,6 @@
   <script src="js/metronome.js"></script>
   <script src="js/chords.js"></script>
   <script src="js/ear.js"></script>
-  <script src="js/practice.js"></script>
   <script src="js/nav.js"></script>
   <script src="js/pwa.js"></script>
 </body>
